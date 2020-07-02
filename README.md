@@ -1,2 +1,2 @@
 # RL
-Reinforcement Learning exercise
+Reinforcement Learning exercise 2020
