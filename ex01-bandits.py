@@ -46,7 +46,7 @@ def greedy(bandit, timesteps):
         reward_for_a = bandit.play_arm(a)
         rewards[a] += reward_for_a
         n_plays[a] += 1
-        Q = rewards / n_plays
+        Q[a] = rewards[a] / n_plays[a]
 
 
 def epsilon_greedy(bandit, timesteps):
@@ -75,13 +75,13 @@ def epsilon_greedy(bandit, timesteps):
             reward_for_a = bandit.play_arm(a)
             rewards[a] += reward_for_a
             n_plays[a] += 1
-            Q = rewards / n_plays
+            Q[a] = rewards[a] / n_plays[a]
         else:
             a = random.choice(possible_arms)
             reward_for_a = bandit.play_arm(a)
             rewards[a] += reward_for_a
             n_plays[a] += 1
-            Q = rewards / n_plays
+            Q[a] = rewards[a] / n_plays[a]
 
 def main():
     n_episodes = 10000  # TODO: set to 10000 to decrease noise in plot
