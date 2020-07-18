@@ -3,7 +3,7 @@ import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def policy(obs):
     player_sum, dealer_card, useable_ace = obs
@@ -33,18 +33,18 @@ def frist_visit_mc_predict(policy, env, eps):
             s = states[t]
             r = rewards[t]
             G += r
-
+            # only add the first occurence of state s in episode i
             if s not in visited_state:
                 reward, visits = returns.get(s, [0, 0])
                 returns[s] = [reward + G, visits + 1]
                 visited_state.add(s)
-
-    for s , (sum_reward, n_visits) in returns.items():
+    #average over many plays
+    for s, (sum_reward, n_visits) in returns.items():
         V[s] = sum_reward/n_visits
 
     return V
 
-def plot_fun(V, ax1, ax2):
+def plot_func(V, ax1, ax2):
     player_sum = np.arange(12, 22)
     dealer_card = np.arange(1, 11)
     usable_ace = np.array([True, False])
@@ -71,7 +71,6 @@ def plot_fun(V, ax1, ax2):
     ax2.set_ylabel('Player sum')
     #ax2.set_zlabel('value')
 
-
 def generate_eps_from_policy(env, pi):
     states = []
     rewards = []
@@ -88,7 +87,6 @@ def generate_eps_from_policy(env, pi):
         rewards.append(reward)
         state = next_state
     return states, actions, rewards
-
 
 def mc_es(env, generate_eps_from_policy, episodes):
     n_actions = env.action_space.n
@@ -132,68 +130,66 @@ def plot_value(v, eps):
     fig.suptitle("After %d episodes"%eps, fontsize=16)
     axes[0].set_title('Uable ace')
     axes[1].set_title('No usable ace')
-    plot_fun(v, axes[0], axes[1])
+    plot_func(v, axes[0], axes[1])
+    plt.show()
+
+def plot_policy(policy):
+    def get_Z(x, y, usable_ace):
+        if (x, y, usable_ace) in policy:
+            return policy[x, y, usable_ace]
+        else:
+            return 1
+
+    def get_figure(usable_ace, ax):
+        x_range = np.arange(11, 22)
+        y_range = np.arange(10, 0, -1)
+        X, Y = np.meshgrid(x_range, y_range)
+        Z = np.array([[get_Z(x, y, usable_ace) for x in x_range] for y in y_range])
+        surf = ax.imshow(Z, cmap=plt.get_cmap('Pastel2', 2), vmin=0, vmax=1, extent=[10.5, 21.5, 0.5, 10.5])
+        plt.xticks(x_range)
+        plt.yticks(y_range)
+        plt.gca().invert_yaxis()
+        ax.set_xlabel('Player sum')
+        ax.set_ylabel('Dealer Showing')
+        ax.grid(color='w', linestyle='-', linewidth=1)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        cbar = plt.colorbar(surf, ticks=[0, 1], cax=cax)
+        cbar.ax.set_yticklabels(['0 (STICK)', '1 (HIT)'])
+
+    fig = plt.figure(figsize=(15, 15))
+    ax = fig.add_subplot(121)
+    ax.set_title('Usable ace')
+    get_figure(True, ax)
+    ax = fig.add_subplot(122)
+    ax.set_title('No usable ace')
+    get_figure(False, ax)
     plt.show()
 
 def main():
     # This example shows how to perform a single run with the policy that hits for player_sum >= 20
     env = gym.make('Blackjack-v0')
 
-    eps1 = 10000
-    eps2 = 500000
 
-    v1 = frist_visit_mc_predict(policy, env, eps1)
-    plot_value(v1, eps1)
+    eps1 = 10000
+    eps2 = 9000000
+
+    #first visit monte carlo
+    #v1 = frist_visit_mc_predict(policy, env, eps1)
+    #plot_value(v1, eps1)
 
     #v2 = frist_visit_mc_predict(policy, env, eps2)
     #plot_value(v2, eps2)
 
-    v3, pi3 = mc_es(env, generate_eps_from_policy, eps1)
+    #monte carlo esploring starts
+    #v3, pi3 = mc_es(env, generate_eps_from_policy, eps1)
     #plot_value(v3, eps1)
-    #print(len(pi3))
+    #plot_policy(pi3)
 
 
     v4, pi4 = mc_es(env, generate_eps_from_policy, eps2)
     plot_value(v4, eps2)
-    print(len(pi4))
-
-
-    '''
-    eps = 10000 #10000
-    v = frist_visit_mc_predict1(policy, env, eps)
-    fig, axes = plt.subplots(nrows =  2, subplot_kw={'projection': '3d'})
-    fig.suptitle("After 10,000 episodes", fontsize=16)
-    axes[0].set_title('Uable ace')
-    axes[1].set_title('No usable ace')
-    plot_value(v, axes[0], axes[1])
-    plt.show()
-
-    eps1 = 500000
-    v1 = frist_visit_mc_predict(policy, env, eps1)
-    fig, axes = plt.subplots(nrows=2, subplot_kw={'projection': '3d'})
-    fig.suptitle("After 500,000 episodes", fontsize=16)
-    axes[0].set_title('No usable ace')
-    axes[1].set_title('Usable ace')
-    plot_value(v1, axes[0], axes[1])
-    plt.show()
-
-    obs = env.reset()  # obs is a tuple: (player_sum, dealer_card, useable_ace)
-    done = False
-
-    while not done:
-        #print('test policy', policy(obs))
-        print("observation:", obs)
-        if obs[0] >= 20:
-            print("stick")
-            obs, reward, done, _ = env.step(0)
-        else:
-            print("hit")
-            obs, reward, done, _ = env.step(1)
-        print("reward:", reward)
-        print("")
-
-    '''
-
+    plot_policy(pi4)
 
 if __name__ == "__main__":
     main()
